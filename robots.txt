@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://mycollecto.github.io/drei-ausrufezeichen-tracker/sitemap.xml
