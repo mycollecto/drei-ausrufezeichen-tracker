@@ -1,0 +1,159 @@
+name: Cover-Bilder herunterladen
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download-covers:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ordner erstellen
+        run: mkdir -p covers/haupt covers/super covers/staedte
+
+      - name: Cover herunterladen
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request, urllib.parse, os, time, json, hashlib
+
+          BASE_API = 'https://diedreiausrufezeichen.fandom.com/api.php'
+          H = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'}
+
+          def get_img(title):
+            url = BASE_API + '?action=query&titles=' + urllib.parse.quote(title) + '&prop=pageimages&pithumbsize=500&format=json'
+            try:
+              req = urllib.request.Request(url, headers=H)
+              with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+              for pid, page in data.get('query',{}).get('pages',{}).items():
+                src = page.get('thumbnail',{}).get('source','')
+                if src: return src
+            except: pass
+            return None
+
+          def dl(url, path):
+            req = urllib.request.Request(url, headers=H)
+            with urllib.request.urlopen(req, timeout=20) as r: data = r.read()
+            if len(data) > 1000: open(path,'wb').write(data); return True
+            return False
+
+          HAUPT = {
+            1:'Die Handy-Falle',2:'Betrug beim Casting',3:'Gefährlicher Chat',
+            4:'Vorsicht, Ferienfalle!',5:'Tatort Eislaufbahn',6:'Spuk im Stall',
+            7:'Skaterfieber',8:'Vorsicht, Strandhaie!',9:'Im Bann des Tarots',
+            10:'Tanz der Hexen',11:'Das Geheimnis des Onkels',12:'Popstar in Gefahr',
+            13:'Gefahr im Reitstall',14:'Spuk am See',15:'Duell der Topmodels',
+            16:'Falsches Spiel im Internat',17:'Gefährliche Fracht',18:'V.I.P.-Alarm',
+            19:'Teuflisches Handy',20:'Beutejagd am Geistersee',21:'Skandal auf der Rennbahn',
+            22:'Jagd im Untergrund',23:'Undercover im Netz',24:'Fußballstar in Gefahr',
+            25:'Diamanten-Diebstahl',26:'Tatort Filmset',27:'Der Fluch des Goldes',
+            28:'Im Visier der Kamera',29:'Mission Pferdeshow',30:'Diebe in der Lagune',
+            31:'Tödliche Stille',32:'Party des Grauens',33:'Küsse im Schnee',
+            34:'Gefahr aus dem Netz',35:'Der Ruf der Wölfe',36:'Dunkle Machenschaften',
+            37:'Mission Pferdeshow',38:'Stylist in Gefahr',39:'Verliebte Weihnachten',
+            40:'Das Erbe der Gräfin',41:'Rivalen aufs Glatteis',42:'Gefährlicher Tausch',
+            43:'Graffiti-Alarm',44:'Tödliches Spiel',45:'Heimliche Zeugin',
+            46:'Rockstar in Not',47:'Mädchen gegen Jungs',48:'Todsicher verliebt',
+            49:'Doppeltes Spiel',50:'Geheimnis unter Wasser',51:'Der Fluch der Hexe',
+            52:'Fußball-Fever',53:'Mysteriöse Botschaft',54:'Klappe und Action',
+            55:'Der Fall Dornröschen',56:'Das Geheimnis der Geschwister',57:'Feuer und Flamme',
+            58:'Gorilla in Not',59:'Grüne Lügen',60:'Verrat unter Freunden',
+            61:'Tanz mit dem Feuer',62:'Blackout',63:'Gefährliche Spiele',
+            64:'Der Graffiti-Code',65:'Ehrensache',66:'Auf der Jagd',
+            67:'Geheimnis im Dunkeln',68:'Die Rache der Freundin',69:'Spurlos verschwunden',
+            70:'Diebe in der Nacht',71:'Tödliche Versuchung',72:'Labyrinth der Lügen',
+            73:'Der gestohlene Traumjob',74:'Verrat im Morgengrauen',75:'Im Schatten der Macht',
+            76:'Falscher Freund',77:'Gefangen im Netz',78:'Das Geheimnis der Katakomben',
+            79:'Feind oder Freund',80:'Auf gefährlicher Mission',81:'Der rote Faden',
+            82:'Nacht der Gefahren',83:'Das gestohlene Lächeln',84:'Im Visier',
+            85:'Rätsel der alten Eiche',86:'Abenteuer Afrika',87:'Falle im alten Kino',
+            88:'Das Geheimnis der Maske',89:'Verlorene Träume',90:'Flucht in die Nacht',
+            91:'Falsche Spuren',92:'Das verschwundene Mädchen',93:'Im Bann des Bösen',
+            94:'Unheimliches Meeresleuchten',95:'Der verlorene Schlüssel',
+            96:'Geheimnis der alten Villa',97:'Dunkle Schatten',98:'Das Phantom',
+            99:'Eiskalte Gefahr',100:'Geheimnis der schwarzen Katze',
+            101:'Tödliche Stille',102:'Der Fluch des Pharaos',103:'Jagd in der Nacht',
+            104:'Das verschwundene Herz',105:'Im Labyrinth der Lügen',106:'Der rote Drachen',
+            107:'Schattenspiel',108:'Gefährliche Wahrheit',109:'Unsichtbare Feinde',
+            110:'Das Geheimnis des alten Hauses',111:'Spurlos',112:'Tödliche Fracht',
+            113:'Die schwarze Rose',114:'Verrat im Verborgenen',115:'Dunkles Erbe',
+            116:'Das Geheimnis des alten Friedhofs',117:'Gefahr im Paradies',
+            118:'Dunkle Machenschaften',119:'Unbekannter Täter',
+          }
+          SUPER = {1:'Die Pony-Verschwörung',2:'Spuk der Vergangenheit',3:'Nacht der Prinzessinnen',4:'Fahrrad-Alarm'}
+          STAEDTE = {
+            1:'Täter, Tortilla und ganz viel Barcelona',2:'Chaos, Currywurst und ganz viel Berlin',
+            3:'Betrug, Baguette und ganz viel Paris',4:'Tatort, Tee und ganz viel London',
+            5:'Ganoven, Gouda und ganz viel Amsterdam',6:'Spione, Spaghetti und ganz viel Venedig',
+            7:'Diebe, Donuts und ganz viel New York',8:'Sabotage, Sachertorte und ganz viel Wien',
+            9:'Krimi, Krabben und ganz viel Nordsee',10:'Betrug, Brezn und ganz viel München',
+          }
+
+          SERIES = [('haupt',119,HAUPT),('super',4,SUPER),('staedte',10,STAEDTE)]
+
+          # Deduplication helper
+          def file_hash(path):
+            return hashlib.md5(open(path,'rb').read()).hexdigest()
+
+          total = 0
+          for key, count, titles in SERIES:
+            print('\n=== ' + key + ' ===')
+            ok = skip = 0
+            for n in range(1, count+1):
+              if any(os.path.exists('covers/'+key+'/'+str(n)+'.'+e) for e in ['jpg','jpeg','png','webp']):
+                continue
+              title = titles.get(n)
+              if not title: skip+=1; continue
+              img = get_img(title)
+              if img:
+                ext = 'png' if '.png' in img.lower() else 'jpg'
+                try:
+                  if dl(img, 'covers/'+key+'/'+str(n)+'.'+ext): ok+=1
+                  else: skip+=1
+                except: skip+=1
+              else:
+                skip+=1
+              time.sleep(0.15)
+            print('  '+key+': '+str(ok)+' OK, '+str(skip)+' skip')
+            total += ok
+
+          # Remove duplicates
+          import re
+          dup_total = 0
+          for key in ['haupt','super','staedte']:
+            folder = 'covers/' + key
+            if not os.path.exists(folder): continue
+            files = sorted(f for f in os.listdir(folder) if f.lower().endswith(('.jpg','.jpeg','.png','.webp')))
+            hashes = {}
+            for fname in files:
+              path = os.path.join(folder, fname)
+              h = file_hash(path)
+              if h in hashes:
+                nums1 = re.findall(r'\d+', hashes[h])
+                nums2 = re.findall(r'\d+', fname)
+                n1 = int(nums1[-1]) if nums1 else 0
+                n2 = int(nums2[-1]) if nums2 else 0
+                remove = hashes[h] if n1 < n2 else fname
+                os.remove(os.path.join(folder, remove))
+                hashes[h] = fname if n1 < n2 else hashes[h]
+                print('Dup: ' + key + '/' + remove)
+                dup_total += 1
+              else:
+                hashes[h] = fname
+          print('\nGesamt: '+str(total)+' OK, '+str(dup_total)+' Duplikate entfernt')
+          PYEOF
+
+      - name: Committen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add covers/
+          git diff --staged --quiet && echo "Keine Aenderungen" || (
+            COUNT=$(find covers -type f | wc -l)
+            git commit -m "Cover aktualisiert ($COUNT Dateien)"
+            git push
+          )
