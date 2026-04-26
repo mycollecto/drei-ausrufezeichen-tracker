@@ -24,6 +24,20 @@ jobs:
           H = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'}
 
           def get_img(title):
+            # For File/Datei pages use imageinfo
+            if title.startswith('Datei:') or title.startswith('File:'):
+              url = BASE_API + '?action=query&titles=' + urllib.parse.quote(title) + '&prop=imageinfo&iiprop=url&format=json'
+              try:
+                req = urllib.request.Request(url, headers=H)
+                with urllib.request.urlopen(req, timeout=15) as r:
+                  data = json.loads(r.read())
+                for pid, page in data.get('query',{}).get('pages',{}).items():
+                  info = page.get('imageinfo', [])
+                  if info and info[0].get('url'):
+                    return info[0]['url']
+              except: pass
+              return None
+            # For regular pages use pageimages
             url = BASE_API + '?action=query&titles=' + urllib.parse.quote(title) + '&prop=pageimages&pithumbsize=500&format=json'
             try:
               req = urllib.request.Request(url, headers=H)
@@ -32,6 +46,32 @@ jobs:
               for pid, page in data.get('query',{}).get('pages',{}).items():
                 src = page.get('thumbnail',{}).get('source','')
                 if src: return src
+            except: pass
+            return None
+
+          def get_img_from_wikitext(title):
+            try:
+              raw_url = 'https://diedreiausrufezeichen.fandom.com/wiki/' + urllib.parse.quote(title.replace(' ', '_')) + '?action=raw'
+              req = urllib.request.Request(raw_url, headers=H)
+              with urllib.request.urlopen(req, timeout=15) as r:
+                wikitext = r.read().decode('utf-8', errors='replace')
+              m = re.search(r'[Bb]ild\s*=\s*([^\|\}
+
+]+)', wikitext)
+              if not m:
+                m = re.search(r'[Ii]mage\s*=\s*([^\|\}
+
+]+)', wikitext)
+              if not m:
+                m = re.search(r'[Ii]mage1\s*=\s*([^\|\}
+
+]+)', wikitext)
+              if m:
+                fname = m.group(1).strip()
+                if fname:
+                  src = get_img('Datei:' + fname)
+                  if not src: src = get_img('File:' + fname)
+                  return src
             except: pass
             return None
 
@@ -108,7 +148,30 @@ jobs:
                 continue
               title = titles.get(n)
               if not title: skip+=1; continue
+              # Strategy 1: pageimages API
               img = get_img(title)
+              # Strategy 2: imageinfo via Datei: prefix
+              if not img:
+                for suffix in ['.jpg', '.png', ' NEU.jpg', 'NEU.jpg']:
+                  img = get_img('Datei:' + title + suffix)
+                  if img: break
+              # Strategy 3: wikitext Bild= field
+              if not img:
+                img = get_img_from_wikitext(title)
+              # Strategy 4: og:image from HTML
+              if not img:
+                try:
+                  page_url = 'https://diedreiausrufezeichen.fandom.com/wiki/' + urllib.parse.quote(title.replace(' ', '_'))
+                  req4 = urllib.request.Request(page_url, headers=H)
+                  with urllib.request.urlopen(req4, timeout=15) as r:
+                    html = r.read().decode('utf-8', errors='replace')
+                  og_m = re.search(r'<meta property="og:image" content="([^"]+)"', html)
+                  if og_m:
+                    src = og_m.group(1)
+                    if 'wikia.nocookie.net' in src or 'static.wikia' in src:
+                      src = re.sub(r'/revision/latest/scale-to-width-down/[0-9]+', '/revision/latest', src)
+                      img = src
+                except: pass
               if img:
                 ext = 'png' if '.png' in img.lower() else 'jpg'
                 try:
