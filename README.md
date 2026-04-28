@@ -1,4 +1,4 @@
-#❗❗❗ Die drei !!! Tracker
+# ❗ Die drei !!! Tracker
 
 Lesetracker für alle Die drei !!! Bücher und Hörspiele.
 
@@ -8,7 +8,7 @@ Lesetracker für alle Die drei !!! Bücher und Hörspiele.
 - 📚 **133 Bände** in 3 Reihen
 - 🖼️ Echte Cover vom Fandom-Wiki
 - ✅ Abhaken mit Konfetti
-- 🛒 **Amazon Affiliate** – Buch & Hörspiel Buttons pro Band
+- 🛒 Amazon Kaufen-Links – Buch & Hörspiel pro Band
 - 💾 Fortschritt lokal gespeichert
 - 📱 PWA – auf Homescreen installierbar
 
